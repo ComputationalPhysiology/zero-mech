@@ -1,11 +1,25 @@
+# # Neohookean model coupled with ToRORd and Land model using monolithic approach
+
+# In this example, we couple the Neo-Hookean model with the ToRORd and Land model using a monolithic approach.
+# By monolithic approach, we mean that we solve the mechanical and electrophysiological equations simultaneously.
+
 from pathlib import Path
-import numba
 from tqdm import tqdm
 import gotranx
 from scipy.optimize import root
 import numpy as np
 import matplotlib.pyplot as plt
+import zero_mech
 
+
+experiment = zero_mech.experiments.uniaxial_tension()
+mat = zero_mech.material.NeoHookean()
+comp = zero_mech.compressibility.Incompressible()
+act = zero_mech.active.ActiveStress()
+mech_model = zero_mech.Model(material=mat, compressibility=comp, active=act)
+
+# First Piola-Kirchhoff stress
+P = mech_model.first_piola_kirchhoff(experiment.F)
 
 # Generate code and save it to a file if it does not exist
 module_path = Path("ToRORd_dynCl_endo.py")
@@ -47,11 +61,6 @@ lmbda_index = model["parameter_index"]("lmbda")
 dLambda_index = model["parameter_index"]("dLambda")
 
 
-# Material parameters for Neo-Hookean model
-mu = 15.0
-
-
-# @numba.njit
 def func(x, y, ti, dt, params, new_y, prev_lmbda):
     lmbda, p = x
     dLambda = (lmbda - prev_lmbda) / dt
@@ -63,27 +72,16 @@ def func(x, y, ti, dt, params, new_y, prev_lmbda):
     monitor = mon(ti, new_y, params)
     Ta = monitor[Ta_index]
 
-    return np.array(
-        [
-            2 * Ta * lmbda + 1.0 * lmbda * mu + p / lmbda,
-            2 * np.sqrt(lmbda) * p + 2.0 * mu / np.sqrt(lmbda),
-        ],
-        dtype=np.float64,
-    )
+    replace = {
+        mech_model["p"]: p,
+        mech_model["Ta"]: Ta,
+        experiment["lmbda"]: lmbda,
+        **mat.default_parameters(),
+    }
 
-
-def jac(x, y):
-    lmbda, p = x
-
-    dP11_dlmbda = 2 * Ta + 1.0 * mu - p / lmbda**2
-    dP11_dp = 1 / lmbda
-    dP22_dlmbda = p / np.sqrt(lmbda) - 1.0 * mu / lmbda ** (3 / 2)
-    dP22_dp = 2 * np.sqrt(lmbda)
-
-    return np.array(
-        [[dP11_dlmbda, dP11_dp], [dP22_dlmbda, dP22_dp]],
-        dtype=np.float64,
-    )
+    P11 = P[0, 0].xreplace(replace)
+    P22 = P[1, 1].xreplace(replace)
+    return np.array([P11, P22], dtype=np.float64)
 
 
 lmbda_value = 1.0
@@ -109,7 +107,6 @@ for i, ti in tqdm(enumerate(t), total=len(t)):
         func,
         np.array([lmbda_value, p_value]),
         args=(y.copy(), ti, dt, params, y, prev_lmbda),
-        # jac=jac,
         method="hybr",
     )
     lmbda_value, p_value = res.x
@@ -122,9 +119,6 @@ for i, ti in tqdm(enumerate(t), total=len(t)):
 
     dLambda = (lmbda_value - prev_lmbda) / dt
     dLambdas[i] = dLambda
-    # Update lmbda and dLambda in the model
-    # params[lmbda_index] = lmbda_value
-    # params[dLambda_index] = dLambda
 
     prev_lmbda = lmbda_value
     Istim[i] = monitor[Istim_index]

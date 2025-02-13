@@ -1,11 +1,23 @@
-from pathlib import Path
+# # Neohookean model coupled with ToRORd and Land model using no feedback
 
+# This approach is the same as the no-splitting approach with the only difference that we do not update the lambda and dLambda in the EP model.
+from pathlib import Path
 from tqdm import tqdm
 import gotranx
 from scipy.optimize import root
 import numpy as np
 import matplotlib.pyplot as plt
+import zero_mech
 
+
+experiment = zero_mech.experiments.uniaxial_tension()
+mat = zero_mech.material.NeoHookean()
+comp = zero_mech.compressibility.Incompressible()
+act = zero_mech.active.ActiveStress()
+mech_model = zero_mech.Model(material=mat, compressibility=comp, active=act)
+
+# First Piola-Kirchhoff stress
+P = mech_model.first_piola_kirchhoff(experiment.F)
 
 # Generate code and save it to a file if it does not exist
 module_path = Path("ToRORd_dynCl_endo.py")
@@ -26,7 +38,7 @@ model = ToRORd_dynCl_endo.__dict__
 # Set time step to 0.1 ms
 dt = 0.1
 # Simulate model for 1000 ms
-BCL = 1000
+BCL = 400
 num_beats = 1
 t = np.arange(0, num_beats * BCL, dt)
 
@@ -47,34 +59,19 @@ lmbda_index = model["parameter_index"]("lmbda")
 dLambda_index = model["parameter_index"]("dLambda")
 
 
-# Material parameters for Neo-Hookean model
-mu = 15.0
-
-
 def func(x, Ta):
     lmbda, p = x
 
-    return np.array(
-        [
-            2 * Ta * lmbda + 1.0 * lmbda * mu + p / lmbda,
-            2 * np.sqrt(lmbda) * p + 2.0 * mu / np.sqrt(lmbda),
-        ],
-        dtype=np.float64,
-    )
+    replace = {
+        mech_model["p"]: p,
+        mech_model["Ta"]: Ta,
+        experiment["lmbda"]: lmbda,
+        **mat.default_parameters(),
+    }
 
-
-def jac(x, Ta):
-    lmbda, p = x
-
-    dP11_dlmbda = 2 * Ta + 1.0 * mu - p / lmbda**2
-    dP11_dp = 1 / lmbda
-    dP22_dlmbda = p / np.sqrt(lmbda) - 1.0 * mu / lmbda ** (3 / 2)
-    dP22_dp = 2 * np.sqrt(lmbda)
-
-    return np.array(
-        [[dP11_dlmbda, dP11_dp], [dP22_dlmbda, dP22_dp]],
-        dtype=np.float64,
-    )
+    P11 = P[0, 0].xreplace(replace)
+    P22 = P[1, 1].xreplace(replace)
+    return np.array([P11, P22], dtype=np.float64)
 
 
 lmbda_value = 1.0
@@ -101,12 +98,10 @@ for i, ti in tqdm(enumerate(t), total=len(t)):
     monitor = mon(ti, y, params)
     Ta[i] = monitor[Ta_index]
 
-    # # Calculate lambda and p using root finding
     res = root(
         func,
         np.array([lmbda_value, p_value]),
         args=(Ta[i],),
-        jac=jac,
         method="hybr",
     )
     lmbda_value, p_value = res.x
@@ -115,9 +110,6 @@ for i, ti in tqdm(enumerate(t), total=len(t)):
 
     dLambda = (lmbda_value - prev_lmbda) / dt
     dLambdas[i] = dLambda
-    # Do not update lmbda and dLambda in the model
-    # params[lmbda_index] = lmbda_value
-    # params[dLambda_index] = dLambda
 
     prev_lmbda = lmbda_value
     Istim[i] = monitor[Istim_index]
@@ -139,5 +131,7 @@ ax[0, 1].set_ylabel("Ca (mM)")
 ax[1, 1].set_ylabel("dLambda")
 ax[0, 2].set_ylabel("Lambda")
 ax[1, 2].set_ylabel("p")
+for axi in ax.flatten():
+    axi.grid()
 fig.tight_layout()
 fig.savefig("neohookean_no_feedback.png")
