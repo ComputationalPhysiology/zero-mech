@@ -14,7 +14,7 @@ classifiers = [
 ]
 keywords = ["mechanics", "0D"]
 urls = {Homepage = "https://github.com/ComputationalPhysiology/0D-mechanics-simulator"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "gotranx",
     "numba",
