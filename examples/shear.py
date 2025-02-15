@@ -1,19 +1,19 @@
 # # Shear test
 
-# This example demonstrates how to perform a simple shear test.
+# This example demonstrates how to perform a simple shear test and is a reproduction of Figure 7 in {cite}`holzapfel2009constitutive`
 
-import logging
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import zero_mech
 
-logging.basicConfig(level=logging.DEBUG)
 mat = zero_mech.material.HolzapfelOgden()
+print(zero_mech.material.HolzapfelOgden.str())
+
+
 comp = zero_mech.compressibility.Incompressible()
 act = zero_mech.active.Passive()
 model = zero_mech.Model(material=mat, compressibility=comp, active=act)
-
 
 p = model["p"]
 
@@ -56,3 +56,9 @@ ax.legend()
 ax.set_xlabel("Strain")
 ax.set_ylabel("Stress")
 fig.savefig("simple_shear.png")
+
+#
+# # References
+# ```{bibliography}
+# :filter: docname in docnames
+# ```

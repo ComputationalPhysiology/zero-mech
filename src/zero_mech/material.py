@@ -58,7 +58,6 @@ class HolzapfelOgden(AbstractStrainEnergy):
         logger.debug(f"I4s: {I4s}")
         I8fs = self.f0.dot(C * self.s0)
         logger.debug(f"I8fs: {I8fs}")
-        # breakpoint()
 
         I4fm1 = I4f - 1 if not self.use_heaviside else sp.Piecewise((0.0, I4f < 1), (I4f - 1, True))
         I4sm1 = I4s - 1 if not self.use_heaviside else sp.Piecewise((0.0, I4s < 1), (I4s - 1, True))
@@ -86,7 +85,7 @@ class HolzapfelOgden(AbstractStrainEnergy):
     def str() -> str:
         return (
             "(a / (2 * b)) * (exp(b * (I1 - 3)) - 1) + "
-            "(a_f / (2 * b_f)) * (exp(b_f * I4fm1**2) - 1) + "
-            "(a_s / (2 * b_s)) * (exp(b_s * I4sm1**2) - 1) + "
+            "(a_f / (2 * b_f)) * (exp(b_f * H(I4f - 1)**2) - 1) + "
+            "(a_s / (2 * b_s)) * (exp(b_s * H(I4f - 1)**2) - 1) + "
             "(a_fs / (2 * b_fs)) * (exp(b_fs * I8fs**2) - 1)"
         )
