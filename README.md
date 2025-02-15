@@ -3,15 +3,13 @@
 In this repo we implement simple 0D mechanics simulator.
 
 ## Install
-First create python3 virtual environment and install required packages:
-```bash
-python3 -m venv venv
-. venv/bin/activate
-python3 -m pip install .
+You can install the package with python
+```
+python3 -m pip install zero-mech
 ```
 
 ## Quick start
-Check of the `examples` folder for examples on how to use the simulator.
+Check of the [documentation](https://computationalphysiology.github.io/zero-mech/) for examples on how to use the simulator.
 
 
 ## License
