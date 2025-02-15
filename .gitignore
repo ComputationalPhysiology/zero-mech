@@ -3,6 +3,7 @@ ToRORd_dynCl_endo_zetasplit_mechanics.py
 *.png
 ToRORd_dynCl_endo.py
 results.png
+_build
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode
 

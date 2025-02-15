@@ -1,4 +1,4 @@
-# # Neohookean model coupled with ToRORd and Land model using zeta splitting
+# # Zeta splitting
 
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using the so called zeta splitting approach.
 

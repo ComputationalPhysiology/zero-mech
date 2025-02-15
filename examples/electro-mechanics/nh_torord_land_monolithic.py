@@ -1,4 +1,4 @@
-# # Neohookean model coupled with ToRORd and Land model using monolithic approach
+# # Monolithic approach
 
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using a monolithic approach.
 # By monolithic approach, we mean that we solve the mechanical and electrophysiological equations simultaneously.

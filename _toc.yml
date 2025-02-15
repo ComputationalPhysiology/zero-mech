@@ -1,0 +1,21 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: README
+parts:
+  - caption: Simple mechanics
+    chapters:
+    - file: "examples/uniaxial_tension.py"
+    - file: "examples/shear.py"
+  - caption: Electro-mechanics
+    chapters:
+    - file: "examples/electro-mechanics/nh_torord_land_monolithic.py"
+    - file: "examples/electro-mechanics/nh_torord_land_no_feedback.py"
+    - file: "examples/electro-mechanics/nh_torord_land_no_split.py"
+    - file: "examples/electro-mechanics/nh_torord_land_zeta_split.py"
+  - caption: Reference
+    chapters:
+    - file: "docs/api.rst"
+    - file: CONTRIBUTING
+    - file: CODE_OF_CONDUCT

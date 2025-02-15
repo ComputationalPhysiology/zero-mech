@@ -1,4 +1,4 @@
-# # Neohookean model coupled with ToRORd and Land model using no feedback
+# # No feedback
 
 # This approach is the same as the no-splitting approach with the only difference that we do not update the lambda and dLambda in the EP model.
 from pathlib import Path

@@ -1,4 +1,4 @@
-# # Neohookean model coupled with ToRORd and Land model using no splitting
+# # No splitting
 
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using no splitting approach.
 
