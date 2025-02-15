@@ -173,7 +173,7 @@ XU_ep = np.zeros(len(t))
 
 ps = np.zeros(len(t))
 
-for i, ti in tqdm(enumerate(t), total=len(t), file=sys.stdout):
+for i, ti in enumerate(t):
     # Forward step for the EP model (from cai split)
     y_ep[:] = fgr_ep(y_ep, ti, dt, p_ep, ep_missing_values)
     V_ep[i] = y_ep[V_index_ep]
