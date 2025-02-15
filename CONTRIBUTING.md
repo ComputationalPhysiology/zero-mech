@@ -1,12 +1,12 @@
 # Contributing
 
-When contributing to this repository, please first [create an issue](https://github.com/ComputationalPhysiology/0D-mechanics-simulator/issues/new/choose) containing information about the missing feature or the bug that you would like to fix. Here you can discuss the change you want to make with the maintainers of the repository.
+When contributing to this repository, please first [create an issue](https://github.com/ComputationalPhysiology/zero-mech/issues/new/choose) containing information about the missing feature or the bug that you would like to fix. Here you can discuss the change you want to make with the maintainers of the repository.
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
 ## New contributor guide
 
-To get an overview of the project, read the [documentation](https://computationalphysiology.github.io/0D-mechanics-simulator/). Here are some resources to help you get started with open source contributions:
+To get an overview of the project, read the [documentation](https://computationalphysiology.github.io/zero-mech/). Here are some resources to help you get started with open source contributions:
 
 - [Finding ways to contribute to open source on GitHub](https://docs.github.com/en/get-started/exploring-projects-on-github/finding-ways-to-contribute-to-open-source-on-github)
 - [Set up Git](https://docs.github.com/en/get-started/quickstart/set-up-git)
@@ -78,8 +78,8 @@ jupyter-book build -W --keep-going .
 ```
 which will turn warnings into errors.
 
-For reference, please see the [github workflow](https://github.com/ComputationalPhysiology/0D-mechanics-simulator/blob/main/.github/workflows/pages.yml) that is used for building the pages.
+For reference, please see the [github workflow](https://github.com/ComputationalPhysiology/zero-mech/blob/main/.github/workflows/pages.yml) that is used for building the pages.
 
 
 ## Need help?
-If something is not working as expected, or you need help please file an [issue](https://github.com/ComputationalPhysiology/0D-mechanics-simulator/issues/new/choose).
+If something is not working as expected, or you need help please file an [issue](https://github.com/ComputationalPhysiology/zero-mech/issues/new/choose).

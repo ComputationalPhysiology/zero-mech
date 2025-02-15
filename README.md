@@ -1,4 +1,4 @@
-# Simple 0D mechanics simulator
+# ZeroMech - A 0D mechanics simulator
 
 In this repo we implement simple 0D mechanics simulator.
 
