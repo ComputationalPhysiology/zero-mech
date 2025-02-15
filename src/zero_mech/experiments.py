@@ -26,7 +26,7 @@ def I8ab(F: sp.Matrix, a: sp.Matrix, b: sp.Matrix) -> sp.Expr:
     return a.T @ (F.T @ F) @ b
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class MechanicalExperiment(Atom):
     F11: sp.Expr = sp.S.One
     F22: sp.Expr = sp.S.One
@@ -103,7 +103,7 @@ def simple_shear(plane: Literal["fs", "sn", "fn", "sf", "ns", "nf"] = "fs") -> M
 
 
 def uniaxial_tension(axis: int = 0) -> MechanicalExperiment:
-    lmbda = sp.Symbol("lmbda", real=True, positive=True)
+    lmbda = sp.Symbol("λ", real=True, positive=True)
 
     F_tension = lmbda
     F_trans = 1.0 / sp.sqrt(lmbda)

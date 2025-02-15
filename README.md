@@ -11,7 +11,7 @@ python3 -m pip install .
 ```
 
 ## Quick start
-Check of the [`examples`](examples) folder for examples on how to use the simulator.
+Check of the `examples` folder for examples on how to use the simulator.
 
 
 ## License

@@ -21,7 +21,7 @@ def test_uniaxial_tension(axis):
     act = zero_mech.active.Passive()
     model = zero_mech.Model(material=mat, compressibility=comp, active=act)
 
-    lmbda = experiment["lmbda"]
+    lmbda = experiment["λ"]
 
     principal_stretches = experiment.principal_stretches()
     assert len(principal_stretches) == 3
@@ -70,7 +70,7 @@ def test_active_uniaxial_tension(axis):
     act = zero_mech.active.ActiveStress(f0=f0)
     model = zero_mech.Model(material=mat, compressibility=comp, active=act)
 
-    lmbda = experiment["lmbda"]
+    lmbda = experiment["λ"]
 
     principal_stretches = experiment.principal_stretches()
     assert len(principal_stretches) == 3

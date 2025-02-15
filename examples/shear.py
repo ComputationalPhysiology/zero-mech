@@ -1,3 +1,7 @@
+# # Shear test
+
+# This example demonstrates how to perform a simple shear test.
+
 import logging
 import sympy as sp
 import numpy as np
@@ -12,14 +16,6 @@ model = zero_mech.Model(material=mat, compressibility=comp, active=act)
 
 
 p = model["p"]
-a = model["a"]
-b = model["b"]
-a_f = model["a_f"]
-b_f = model["b_f"]
-a_s = model["a_s"]
-b_s = model["b_s"]
-a_fs = model["a_fs"]
-b_fs = model["b_fs"]
 
 stress = {
     "fs": [],
@@ -37,6 +33,7 @@ stretch = np.linspace(0.0, 0.5, 20)
 
 for plane in ["fs", "sn", "fn", "sf", "ns", "nf"]:
     experiment = zero_mech.experiments.simple_shear(plane=plane)
+
     gamma = experiment["gamma"]
     P = model.first_piola_kirchhoff(experiment.F)
     p_sym = sp.solve(P[0, 0], p)[0]

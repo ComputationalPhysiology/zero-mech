@@ -11,7 +11,7 @@ class Compressibility(AbstractStrainEnergy):
     def is_compressible(self) -> bool: ...
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class Incompressible(Compressibility):
     p: float = sp.Symbol("p")
 
@@ -25,8 +25,12 @@ class Incompressible(Compressibility):
     def default_parameters(self):
         return {}
 
+    @staticmethod
+    def str() -> str:
+        return "p * (J - 1)"
 
-@dataclass
+
+@dataclass(slots=True, frozen=True)
 class Compressible1(Compressibility):
     kappa = sp.Symbol("kappa")
 
@@ -34,5 +38,12 @@ class Compressible1(Compressibility):
         J = F.det()
         return self.kappa / 2 * (J - 1) ** 2
 
+    def is_compressible(self) -> bool:
+        return True
+
     def default_parameters(self):
         return {self.kappa: 1e3}
+
+    @staticmethod
+    def str() -> str:
+        return "kappa / 2 * (J - 1) ** 2"

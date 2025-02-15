@@ -17,6 +17,10 @@ class ActiveStress(AbstractStrainEnergy):
     def default_parameters(self):
         return {self.Ta: 0.0}
 
+    @staticmethod
+    def str() -> str:
+        return "Ta * (I4f - 1)"
+
 
 @dataclass
 class ActiveStrain:
@@ -32,6 +36,10 @@ class ActiveStrain:
     def default_parameters(self):
         return {self.γ: 0.0}
 
+    @staticmethod
+    def str() -> str:
+        return "(1 + γ) * f0 @ f0.T + (1 + γ) ** (-0.5) * (eye(3) - f0 @ f0.T)"
+
 
 @dataclass
 class Passive(AbstractStrainEnergy):
@@ -40,3 +48,7 @@ class Passive(AbstractStrainEnergy):
 
     def default_parameters(self):
         return {}
+
+    @staticmethod
+    def str() -> str:
+        return "0"

@@ -6,16 +6,24 @@ import sympy as sp
 from .experiments import full_matrix
 from .atoms import Atom
 
+from .active import Passive
+from .compressibility import Incompressible
+from .material import NeoHookean
+
 
 class StrainEnergy(Protocol):
     def strain_energy(self, F: sp.Matrix) -> sp.Expr: ...
 
 
-@dataclass
+class Compressibility(StrainEnergy, Protocol):
+    def is_compressible(self) -> bool: ...
+
+
+@dataclass(slots=True, frozen=True)
 class Model(Atom):
-    material: StrainEnergy
-    compressibility: StrainEnergy
-    active: StrainEnergy
+    material: StrainEnergy = field(default_factory=NeoHookean)
+    compressibility: Compressibility = field(default_factory=Incompressible)
+    active: StrainEnergy = field(default_factory=Passive)
 
     _full: sp.Matrix = field(default_factory=full_matrix, init=False, repr=False)
 
@@ -35,8 +43,13 @@ class Model(Atom):
         )
 
     def strain_energy(self, F):
+        if self.compressibility.is_compressible():
+            J = F.det()
+            F_dev = F / J ** (1 / 3)
+        else:
+            F_dev = F
         return (
-            self.material.strain_energy(F)
+            self.material.strain_energy(F_dev)
             + self.compressibility.strain_energy(F)
             + self.active.strain_energy(F)
         )
