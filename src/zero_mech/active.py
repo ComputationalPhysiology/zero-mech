@@ -4,7 +4,7 @@ import sympy as sp
 from .atoms import AbstractStrainEnergy
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class ActiveStress(AbstractStrainEnergy):
     Ta: sp.Symbol = sp.Symbol("Ta")
     f0: sp.Matrix = field(default_factory=lambda: sp.Matrix([1, 0, 0]))
@@ -22,7 +22,7 @@ class ActiveStress(AbstractStrainEnergy):
         return "Ta * (I4f - 1)"
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class ActiveStrain:
     γ: sp.Symbol = sp.Symbol("γ")
     f0: sp.Matrix = field(default_factory=lambda: sp.Matrix([1, 0, 0]))

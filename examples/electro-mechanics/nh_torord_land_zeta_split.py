@@ -3,6 +3,7 @@
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using the so called zeta splitting approach.
 
 
+import sys
 from pathlib import Path
 from tqdm import tqdm
 import gotranx
@@ -138,7 +139,7 @@ def func(x, y, ti, dt, params, new_y, prev_lmbda, missing_values):
     replace = {
         mech_model["p"]: p,
         mech_model["Ta"]: Ta,
-        experiment["lmbda"]: lmbda,
+        experiment["λ"]: lmbda,
         **mat.default_parameters()
     }
 
@@ -172,7 +173,7 @@ XU_ep = np.zeros(len(t))
 
 ps = np.zeros(len(t))
 
-for i, ti in tqdm(enumerate(t), total=len(t)):
+for i, ti in tqdm(enumerate(t), total=len(t), file=sys.stdout):
     # Forward step for the EP model (from cai split)
     y_ep[:] = fgr_ep(y_ep, ti, dt, p_ep, ep_missing_values)
     V_ep[i] = y_ep[V_index_ep]

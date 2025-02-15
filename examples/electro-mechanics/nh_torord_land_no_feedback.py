@@ -1,6 +1,7 @@
 # # No feedback
 
 # This approach is the same as the no-splitting approach with the only difference that we do not update the lambda and dLambda in the EP model.
+import sys
 from pathlib import Path
 from tqdm import tqdm
 import gotranx
@@ -65,7 +66,7 @@ def func(x, Ta):
     replace = {
         mech_model["p"]: p,
         mech_model["Ta"]: Ta,
-        experiment["lmbda"]: lmbda,
+        experiment["λ"]: lmbda,
         **mat.default_parameters(),
     }
 
@@ -91,7 +92,7 @@ lmbdas = np.zeros(len(t))
 dLambdas = np.zeros(len(t))
 ps = np.zeros(len(t))
 
-for i, ti in tqdm(enumerate(t), total=len(t)):
+for i, ti in tqdm(enumerate(t), total=len(t), file=sys.stdout):
     y = fgr(y, ti, dt, params)
     V[i] = y[V_index]
     Ca[i] = y[Ca_index]

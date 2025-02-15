@@ -3,6 +3,7 @@
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using no splitting approach.
 
 
+import sys
 from pathlib import Path
 from tqdm import tqdm
 import gotranx
@@ -66,7 +67,7 @@ def func(x, Ta):
     replace = {
         mech_model["p"]: p,
         mech_model["Ta"]: Ta,
-        experiment["lmbda"]: lmbda,
+        experiment["λ"]: lmbda,
         **mat.default_parameters(),
     }
 
@@ -92,7 +93,7 @@ lmbdas = np.zeros(len(t))
 dLambdas = np.zeros(len(t))
 ps = np.zeros(len(t))
 
-for i, ti in tqdm(enumerate(t), total=len(t)):
+for i, ti in tqdm(enumerate(t), total=len(t), file=sys.stdout):
     y = fgr(y, ti, dt, params)
     V[i] = y[V_index]
     Ca[i] = y[Ca_index]

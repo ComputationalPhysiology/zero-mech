@@ -3,6 +3,7 @@
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using a monolithic approach.
 # By monolithic approach, we mean that we solve the mechanical and electrophysiological equations simultaneously.
 
+import sys
 from pathlib import Path
 from tqdm import tqdm
 import gotranx
@@ -75,7 +76,7 @@ def func(x, y, ti, dt, params, new_y, prev_lmbda):
     replace = {
         mech_model["p"]: p,
         mech_model["Ta"]: Ta,
-        experiment["lmbda"]: lmbda,
+        experiment["λ"]: lmbda,
         **mat.default_parameters(),
     }
 
@@ -101,7 +102,7 @@ lmbdas = np.zeros(len(t))
 dLambdas = np.zeros(len(t))
 ps = np.zeros(len(t))
 
-for i, ti in tqdm(enumerate(t), total=len(t)):
+for i, ti in tqdm(enumerate(t), total=len(t), file=sys.stdout):
     # # Calculate lambda and p using root finding
     res = root(
         func,
