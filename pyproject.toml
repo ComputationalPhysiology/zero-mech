@@ -16,12 +16,6 @@ keywords = ["mechanics", "0D"]
 urls = {Homepage = "https://github.com/ComputationalPhysiology/zero-mech"}
 requires-python = ">=3.10"
 dependencies = [
-    "gotranx",
-    "numba",
-    "scipy",
-    "tqdm",
-    "numpy",
-    "matplotlib",
     "sympy",
 ]
 
@@ -30,6 +24,14 @@ file = "README.md"
 content-type = "text/markdown"
 
 [project.optional-dependencies]
+examples = [
+    "gotranx",
+    "scipy",
+    "tqdm",
+    "numpy",
+    "matplotlib",
+    "ipython",
+]
 dev = [
     "bump-my-version",
     "ipython",
@@ -41,6 +43,7 @@ dev = [
 docs = [
     "jupyter-book",
     "jupytext",
+    "zero-mech[examples]"
 ]
 test = [
     "pytest",
