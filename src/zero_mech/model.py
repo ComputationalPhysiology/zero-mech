@@ -42,10 +42,12 @@ class Model(Atom):
             }
         )
 
-    def strain_energy(self, F):
+    @property
+    def _strain_energy(self):
+        F = self._full.F
         if self.compressibility.is_compressible():
             J = F.det()
-            F_dev = F / J ** (1 / 3)
+            F_dev = F * J ** (-1 / 3)
         else:
             F_dev = F
         return (
@@ -54,8 +56,11 @@ class Model(Atom):
             + self.active.strain_energy(F)
         )
 
+    def strain_energy(self, F):
+        return self._subs(self._strain_energy, F)
+
     def first_piola_kirchhoff(self, F):
-        return self._subs(sp.diff(self.strain_energy(self._full.F), self._full.F), F)
+        return self._subs(sp.diff(self._strain_energy, self._full.F), F)
 
     def cauchy_stress(self, F):
         J = F.det()

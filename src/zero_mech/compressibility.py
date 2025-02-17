@@ -13,7 +13,7 @@ class Compressibility(AbstractStrainEnergy):
 
 @dataclass(slots=True, frozen=True)
 class Incompressible(Compressibility):
-    p: float = sp.Symbol("p")
+    p: sp.Symbol = sp.Symbol("p")
 
     def is_compressible(self) -> bool:
         return False
@@ -32,18 +32,18 @@ class Incompressible(Compressibility):
 
 @dataclass(slots=True, frozen=True)
 class Compressible1(Compressibility):
-    kappa = sp.Symbol("kappa")
+    κ: sp.Symbol = sp.Symbol("κ")
 
     def strain_energy(self, F: sp.Matrix) -> sp.Expr:
         J = F.det()
-        return self.kappa / 2 * (J - 1) ** 2
+        return self.κ / 2 * (J - 1) ** 2
 
     def is_compressible(self) -> bool:
         return True
 
     def default_parameters(self):
-        return {self.kappa: 1e3}
+        return {self.κ: 1e3}
 
     @staticmethod
     def str() -> str:
-        return "kappa / 2 * (J - 1) ** 2"
+        return "κ / 2 * (J - 1) ** 2"
