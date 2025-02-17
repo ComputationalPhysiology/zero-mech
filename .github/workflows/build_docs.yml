@@ -30,6 +30,18 @@ jobs:
       - name: Build docs
         run: jupyter-book build -W --keep-going .
 
+      - name: Install jupyterlite dependencies
+        run: python3 -m pip install ".[lite]"
+
+      - name: Build site for jupyterlite
+        run: |
+          mkdir content
+          find examples -name '*.py' -exec jupytext --to ipynb {} +
+          find examples -name '*.ipynb' -exec mv {} content ';'
+          cp -r src/zero_mech content/
+          jupyter lite build --contents content --output-dir ./_build/html/lite
+
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
