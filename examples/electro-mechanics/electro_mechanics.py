@@ -128,6 +128,7 @@ plt.show()
 # We can describe this as a uniaxial experiment in the `zero_mech` package
 
 # +
+import sympy  # noqa: F401
 import zero_mech
 from IPython.display import display
 

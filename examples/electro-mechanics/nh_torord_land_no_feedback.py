@@ -8,6 +8,7 @@ import gotranx
 from scipy.optimize import root
 import numpy as np
 import matplotlib.pyplot as plt
+import sympy  # noqa: F401
 import zero_mech
 
 

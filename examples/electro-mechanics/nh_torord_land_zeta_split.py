@@ -3,13 +3,12 @@
 # In this example, we couple the Neo-Hookean model with the ToRORd and Land model using the so called zeta splitting approach.
 
 
-import sys
 from pathlib import Path
-from tqdm import tqdm
 import gotranx
 from scipy.optimize import root
 import numpy as np
 import matplotlib.pyplot as plt
+import sympy  # noqa: F401
 import zero_mech
 
 

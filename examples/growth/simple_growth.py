@@ -30,7 +30,6 @@
 
 import zero_mech
 import sympy as sp
-import numpy as np
 from IPython.display import display
 
 # Let us define an uniaxial tension experiment where the material is stretch / compressed along the $x$-axis.
