@@ -155,7 +155,7 @@ print(p_value)
 T_value = T.subs({Gff: 1, Gtt: 1, dt: 1.0, lmbda: 1.3, mu: mu_value, p: p_value})
 display(T_value)
 
-# Now let us run a 20 growth steps with a time step of $\Delta t = 0.1$ days
+# Now let us run a 100 growth steps with a time step of $\Delta t = 0.1$ days
 
 # +
 # Initial values
@@ -164,12 +164,12 @@ Gff_value = 1.0
 Gtt_value = 1.0
 dt_value = 0.1
 
-Axx = []
-Ayy = []
-Gxx = []
-Gyy = []
-Txx = []
-Tyy = []
+Axx = [A[0, 0].subs({Gff: Gff_value, Gtt: Gtt_value, dt: 0, lmbda: lmbda_value})]
+Ayy = [A[1, 1].subs({Gff: Gff_value, Gtt: Gtt_value, dt: 0, lmbda: lmbda_value})]
+Gxx = [Gff_value]
+Gyy = [Gtt_value]
+Txx = [T[0, 0].subs({Gff: Gff_value, Gtt: Gtt_value, dt: 0, lmbda: lmbda_value, mu: mu_value, p: p_value})]
+Tyy = [T[1, 1].subs({Gff: Gff_value, Gtt: Gtt_value, dt: 0, lmbda: lmbda_value, mu: mu_value, p: p_value})]
 
 for i in range(100):
     A_n = A_next.xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value})
@@ -179,7 +179,6 @@ for i in range(100):
     G_n = G_next.xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value})
     Gff_value = G_n[0, 0]
     Gtt_value = G_n[1, 1]
-
 
     Axx.append(lmbda_value)
     Ayy.append(A_n[1, 1])
@@ -191,7 +190,7 @@ for i in range(100):
 # +
 import matplotlib.pyplot as plt
 
-fig, ax = plt.subplots(3, 2, sharex=True, sharey="row")
+fig, ax = plt.subplots(3, 2, sharex=True, sharey="row", figsize=(10, 10))
 ax[0, 0].plot(Axx)
 ax[0, 0].set_title("Axx")
 ax[0, 1].plot(Ayy)
