@@ -38,6 +38,7 @@ jobs:
           mkdir content
           find examples -name '*.py' -exec jupytext --to ipynb {} +
           find examples -name '*.ipynb' -exec mv {} content ';'
+          find examples -name '*.ode' -exec cp {} content ';'
           cp -r src/zero_mech content/
           jupyter lite build --contents content --output-dir ./_build/html/lite
 
