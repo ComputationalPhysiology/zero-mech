@@ -185,6 +185,8 @@ display(P)
 # To model the electro-chemical state of the muscle cells we will use the TorORd model {cite}`tomek2019development` coupled to the Land model for crossbridge dynamics {cite}`land2017model`. We can use [`gotranx`](https://finsberg.github.io/gotranx) to generate code for solving the ODE using the Generalized Rush Larsen scheme.
 
 # +
+# Comment out the following lines if importing gotranx fails
+# %pip install gotranx
 from pathlib import Path
 import gotranx
 
@@ -196,6 +198,9 @@ if not module_path.is_file():
     )
     module_path.write_text(code)
 
+# -
+
+# +
 import ToRORd_dynCl_endo
 model = ToRORd_dynCl_endo.__dict__
 # -

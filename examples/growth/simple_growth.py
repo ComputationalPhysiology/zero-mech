@@ -174,7 +174,7 @@ Tyy = [T[1, 1].subs({Gff: Gff_value, Gtt: Gtt_value, dt: 0, lmbda: lmbda_value, 
 for i in range(100):
     A_n = A_next.xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value})
     T_n = mech_model.cauchy_stress(A_n)
-    p_value = sp.solve(T_n[0, 0], p)[0].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: i*dt_value, lmbda: lmbda_value, mu: mu_value})
+    p_value = sp.solve(T_n[0, 0], p)[0].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value, mu: mu_value})
     lmbda_value = A_n[0, 0]
     G_n = G_next.xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value})
     Gff_value = G_n[0, 0]
@@ -184,8 +184,8 @@ for i in range(100):
     Ayy.append(A_n[1, 1])
     Gxx.append(Gff_value)
     Gyy.append(Gtt_value)
-    Txx.append(T_n[0, 0].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: i*dt_value, lmbda: lmbda_value, mu: mu_value, p: p_value}))
-    Tyy.append(T_n[1, 1].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: i*dt_value, lmbda: lmbda_value, mu: mu_value, p: p_value}))
+    Txx.append(T_n[0, 0].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value, mu: mu_value, p: p_value}))
+    Tyy.append(T_n[1, 1].xreplace({Gff: Gff_value, Gtt: Gtt_value, dt: dt_value, lmbda: lmbda_value, mu: mu_value, p: p_value}))
 
 # +
 import matplotlib.pyplot as plt
