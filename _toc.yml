@@ -12,6 +12,9 @@ parts:
     chapters:
     - file: "examples/electro-mechanics/electro_mechanics.py"
     - file: "examples/electro-mechanics/nh_torord_land_zeta_split.py"
+  - caption: Growth and remodelling
+    chapters:
+    - file: "examples/growth/simple_growth.py"
   - caption: Reference
     chapters:
     - file: "docs/api.rst"
