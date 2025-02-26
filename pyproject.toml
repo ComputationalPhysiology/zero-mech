@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zero_mech"
-version = "0.1.1"
+version = "0.1.2"
 description = "A zero-dimensional mechanics solver"
 authors = [{name = "Henrik Finsberg", email = "henriknf@simula.no"}]
 license = {text = "MIT"}
@@ -157,7 +157,7 @@ tag = true
 sign_tags = false
 tag_name = "v{new_version}"
 tag_message = "Bump version: {current_version} → {new_version}"
-current_version = "0.1.1"
+current_version = "0.1.2"
 
 
 [[tool.bumpversion.files]]
