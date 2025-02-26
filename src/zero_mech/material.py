@@ -9,15 +9,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True, frozen=True)
 class NeoHookean(AbstractStrainEnergy):
-    μ: sp.Symbol = sp.Symbol("μ")
+    mu: sp.Symbol = sp.Symbol("mu")
 
     def strain_energy(self, F: sp.Matrix) -> sp.Expr:
         C = F.T @ F
         I1 = sp.trace(C)
-        return self.μ / 2 * (I1 - 3)
+        return self.mu / 2 * (I1 - 3)
 
     def default_parameters(self):
-        return {self.μ: 15.0}
+        return {self.mu: 15.0}
 
     @staticmethod
     def str() -> str:

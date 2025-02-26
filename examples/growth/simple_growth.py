@@ -147,7 +147,7 @@ A.subs({Gff: 1, Gtt: 1, dt: 1.0, lmbda: 1.3})
 # Similarly let us also look at the cauchy stress. Let us also choose $p$ so that $\sigma_{xx} = 0$
 
 mu_value = 10.0
-mu = mech_model["μ"]
+mu = mech_model["mu"]
 p = mech_model["p"]
 T = mech_model.cauchy_stress(A)
 p_value = sp.solve(T[0, 0], p)[0].subs({Gff: 1, Gtt: 1, dt: 1.0, lmbda: 1.3, mu: mu_value})
