@@ -29,7 +29,7 @@ def test_uniaxial_tension(axis):
     assert equal(principal_stretches[yy], 1 / sp.sqrt(lmbda))
     assert equal(principal_stretches[zz], 1 / sp.sqrt(lmbda))
 
-    mu = model["μ"]
+    mu = model["mu"]
     p = model["p"]
 
     P = model.first_piola_kirchhoff(experiment.F)
@@ -78,7 +78,7 @@ def test_active_uniaxial_tension(axis):
     assert equal(principal_stretches[yy], 1 / sp.sqrt(lmbda))
     assert equal(principal_stretches[zz], 1 / sp.sqrt(lmbda))
 
-    mu = model["μ"]
+    mu = model["mu"]
     Ta = model["Ta"]
     p = model["p"]
 
