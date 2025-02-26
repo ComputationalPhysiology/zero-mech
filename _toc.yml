@@ -11,7 +11,7 @@ parts:
   - caption: Electro-mechanics
     chapters:
     - file: "examples/electro-mechanics/electro_mechanics.py"
-    - file: "examples/optimized.py"
+    - file: "examples/electro-mechanics/optimized.py"
     - file: "examples/electro-mechanics/nh_torord_land_zeta_split.py"
   - caption: Growth and remodelling
     chapters:
