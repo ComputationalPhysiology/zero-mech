@@ -102,9 +102,9 @@ def simple_shear(plane: Literal["fs", "sn", "fn", "sf", "ns", "nf"] = "fs") -> M
         raise ValueError(f"plane must be fs, sn, fn, sf, ns, or nf, got {plane}")
 
 
-def uniaxial_tension(axis: int = 0) -> MechanicalExperiment:
-    lmbda = sp.Symbol("λ", real=True, positive=True)
-
+def uniaxial_tension(
+    axis: int = 0, lmbda=sp.Symbol("λ", real=True, positive=True)
+) -> MechanicalExperiment:
     F_tension = lmbda
     F_trans = 1.0 / sp.sqrt(lmbda)
 
