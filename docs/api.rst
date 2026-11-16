@@ -47,6 +47,12 @@ model
 .. automodule:: zero_mech.model
     :members:
 
+ventricle
+---------
+
+.. automodule:: zero_mech.ventricle
+    :members:
+
 viscosity
 ----------
 
