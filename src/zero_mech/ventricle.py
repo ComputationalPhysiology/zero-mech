@@ -20,6 +20,19 @@ strain of the fibres. For a :class:`zero_mech.Model` whose wall is stretched by
 
 with :math:`T_a` an active tension along the fibres (a Cauchy stress).
 
+.. note::
+    The active tension of the ventricles, the argument ``Ta`` of their methods
+    (symbol ``T_a``), is not the parameter ``Ta`` of
+    :class:`zero_mech.active.ActiveStress`. If the model of the wall has its own
+    active part, that part contributes through the strain energy
+    :math:`\\psi` like the material does: its ``Ta`` is a second
+    Piola-Kirchhoff stress along one fixed direction ``f0`` (a Cauchy stress
+    :math:`T_a \\lambda^2`), it is a parameter of the model, and in
+    :class:`TriSeg` it is one value shared by the three walls. The same number
+    passed either way therefore gives different pressures. Use a model without
+    an active part, and pass the active tension to the methods; the classes
+    warn otherwise.
+
 Spherical ventricle
 -------------------
 
@@ -104,11 +117,14 @@ from __future__ import annotations
 
 import contextlib
 import math
+import numbers
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
 import sympy as sp
 
+from .active import Passive
 from .atoms import Atom
 from .experiments import equibiaxial
 from .model import Model
@@ -150,7 +166,69 @@ def _passive_fibre_stress(model: Model, radial_axis: int) -> tuple[sp.Symbol, sp
     return lmbda, lmbda * sp.diff(model.strain_energy(experiment.F), lmbda)
 
 
-class SphericalVentricle(Atom):
+class _Ventricle(Atom):
+    """What the ventricles share: the model of the wall and its parameters."""
+
+    model: Model
+    _defaults: dict[str, float]
+    _parameter_symbols: list[sp.Symbol]
+
+    def _set_model(self, model: Model | None) -> None:
+        self.model = model if model is not None else Model()
+        if not isinstance(self.model.active, Passive):
+            warnings.warn(
+                f"The model of the wall has an active part ({type(self.model.active).__name__}). "
+                "Its parameters are not the active tension Ta of the ventricle: they enter "
+                "through the strain energy, along one fixed direction and equally in every "
+                "wall. Use a model without an active part and pass the active tension to the "
+                "methods of the ventricle, unless this is intended.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+    def _set_parameters(
+        self,
+        parameters: Mapping[Any, float] | None,
+        expressions: Sequence[sp.Basic],
+        own: Sequence[sp.Symbol],
+    ) -> None:
+        """Collect the parameters of the model: their values (the defaults of the model's
+        parts, then ``parameters``) and, sorted by name, those that ``expressions`` depend on.
+        ``own`` are the symbols of the ventricle itself."""
+        self._defaults = _default_parameters(self.model)
+        free: set[sp.Symbol] = set()
+        for expr in expressions:
+            free |= expr.free_symbols
+        self._parameter_symbols = sorted(free - set(own), key=lambda s: s.name)
+        #: Every name that is a parameter of the model, used or not
+        self._known = set(self._defaults) | {s.name for s in self._parameter_symbols}
+        if parameters is not None:
+            self._defaults.update(self._checked(parameters))
+        missing = [s.name for s in self._parameter_symbols if s.name not in self._defaults]
+        if missing:
+            raise ValueError(f"No value for the model parameters {missing}")
+
+    def _checked(self, parameters: Mapping[Any, float]) -> dict[str, float]:
+        """``parameters`` by name, after checking that each is a parameter of the model."""
+        given = _by_name(parameters)
+        unknown = set(given) - self._known
+        if unknown:
+            raise KeyError(f"Unknown parameters {sorted(unknown)}; known: {sorted(self._known)}")
+        return given
+
+    @property
+    def parameters(self) -> dict[str, float]:
+        """The parameters of the model that the pressure depends on, with their values."""
+        return {s.name: self._defaults[s.name] for s in self._parameter_symbols}
+
+    def _values(self, parameters: Mapping[Any, float] | None) -> list[float]:
+        values = self._defaults
+        if parameters:
+            values = {**values, **self._checked(parameters)}
+        return [values[s.name] for s in self._parameter_symbols]
+
+
+class SphericalVentricle(_Ventricle):
     """The wall of a sphere around a cavity.
 
     Parameters
@@ -166,18 +244,23 @@ class SphericalVentricle(Atom):
         The direction through the wall, by default 2.
     parameters : mapping, optional
         Values for the parameters of the model, by name or by symbol. Those
-        not given take the defaults of the material, the compressibility
-        model and the active model.
+        not given take the defaults of the model's parts. A name that is not
+        a parameter of the model raises a ``KeyError``.
 
     Notes
     -----
+    The active tension of the ventricle is the argument ``Ta`` of
+    :meth:`pressure` (symbol ``T_a``), a Cauchy stress along the fibres. It is
+    not the parameter ``Ta`` of :class:`zero_mech.active.ActiveStress`; see the
+    note in the module documentation. The model should have no active part.
+
     Volumes can be in any unit, as long as ``V0``, ``Vw`` and the volumes
     passed to the methods share it. Pressures come out in the unit of the
     material parameters and of the active tension.
 
     The pressure and its derivative are available as sympy expressions,
     :attr:`pressure_expr` and :attr:`stiffness_expr`, in the symbols ``V``,
-    ``Ta`` and those of the model.
+    ``T_a`` and those of the model.
     """
 
     def __init__(
@@ -193,7 +276,7 @@ class SphericalVentricle(Atom):
         if not Vw > 0:
             raise ValueError(f"Vw must be positive, got {Vw}")
 
-        self.model = model if model is not None else Model()
+        self._set_model(model)
         self.V0 = float(V0)
         self.Vw = float(Vw)
         self.radial_axis = radial_axis
@@ -202,33 +285,19 @@ class SphericalVentricle(Atom):
         #: Active tension along the fibres (Cauchy stress)
         self.Ta = sp.Symbol("T_a", real=True)
 
-        lmbda = sp.Symbol("λ", real=True, positive=True)
-        experiment = equibiaxial(axis=radial_axis, lmbda=lmbda)
-        if experiment.J != 1:  # pragma: no cover
-            raise RuntimeError("The deformation is not volume preserving")
-        psi = self.model.strain_energy(experiment.F)
-
+        lmbda, sigma_passive = _passive_fibre_stress(self.model, radial_axis)
         #: Stretch as a function of the cavity volume
         self.stretch_expr = ((self.V + self.Vw / 3) / (self.V0 + self.Vw / 3)) ** sp.Rational(1, 3)
-        dlmbda_dV = lmbda / (3 * self.V + self.Vw)
-        pressure = self.Vw * (sp.diff(psi, lmbda) + self.Ta / lmbda) * dlmbda_dV
+        # p = Vw dpsi/dlmbda dlmbda/dV + Ta / (1 + 3 V / Vw), with dlmbda/dV = lmbda / (3 V + Vw)
+        pressure = self.Vw * (sigma_passive + self.Ta) / (3 * self.V + self.Vw)
         #: Cavity pressure as a function of the cavity volume and the active tension
         self.pressure_expr = pressure.subs(lmbda, self.stretch_expr)
         #: Derivative of the cavity pressure with respect to the cavity volume
         self.stiffness_expr = sp.diff(self.pressure_expr, self.V)
 
-        self._defaults = self._default_parameters()
-        if parameters is not None:
-            self._defaults.update(self._by_name(parameters))
-        free = (self.pressure_expr.free_symbols | self.stiffness_expr.free_symbols) - {
-            self.V,
-            self.Ta,
-        }
-        self._parameter_symbols = sorted(free, key=lambda s: s.name)
-        missing = [s.name for s in self._parameter_symbols if s.name not in self._defaults]
-        if missing:
-            raise ValueError(f"No value for the model parameters {missing}")
-
+        self._set_parameters(
+            parameters, (self.pressure_expr, self.stiffness_expr), (self.V, self.Ta)
+        )
         args = (self.V, self.Ta, *self._parameter_symbols)
         self._pressure: Callable[..., Any] = sp.lambdify(args, self.pressure_expr, _MODULES)
         self._stiffness: Callable[..., Any] = sp.lambdify(args, self.stiffness_expr, _MODULES)
@@ -246,42 +315,6 @@ class SphericalVentricle(Atom):
         # Not Atom.variables: that one reads __slots__, which every Atom inherits
         # (empty) from abc.ABC, so it finds nothing on a class without slots.
         return {self.V.name: self.V, self.Ta.name: self.Ta, **self.model.variables()}
-
-    # ------------------------------------------------------------------
-    # Parameters
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _by_name(parameters: Mapping[Any, float]) -> dict[str, float]:
-        return {
-            (k.name if isinstance(k, sp.Symbol) else str(k)): float(v)
-            for k, v in parameters.items()
-        }
-
-    def _default_parameters(self) -> dict[str, float]:
-        defaults: dict[str, float] = {}
-        for part in (self.model.material, self.model.compressibility, self.model.active):
-            get = getattr(part, "default_parameters", None)
-            if get is not None:
-                defaults.update(self._by_name(get()))
-        return defaults
-
-    @property
-    def parameters(self) -> dict[str, float]:
-        """The parameters of the model that the pressure depends on, with their values."""
-        return {s.name: self._defaults[s.name] for s in self._parameter_symbols}
-
-    def _values(self, parameters: Mapping[Any, float] | None) -> list[float]:
-        values = self._defaults
-        if parameters:
-            given = self._by_name(parameters)
-            unknown = set(given) - {s.name for s in self._parameter_symbols}
-            if unknown:
-                raise KeyError(
-                    f"Unknown parameters {sorted(unknown)}; known: {sorted(self.parameters)}"
-                )
-            values = {**values, **given}
-        return [values[s.name] for s in self._parameter_symbols]
 
     # ------------------------------------------------------------------
     # Kinematics
@@ -314,6 +347,7 @@ class SphericalVentricle(Atom):
             Active tension along the fibres, a Cauchy stress, by default 0.
         parameters : mapping, optional
             Model parameters to override for this call, by name or by symbol.
+            A parameter that the pressure does not depend on has no effect.
         """
         return self._pressure(V, Ta, *self._values(parameters))
 
@@ -359,7 +393,7 @@ class TriSegState:
         return (self.xm[1], self.ym)
 
 
-class TriSeg(Atom):
+class TriSeg(_Ventricle):
     """The left and right ventricle as three wall segments (Lumens et al. 2009).
 
     Parameters
@@ -375,10 +409,18 @@ class TriSeg(Atom):
         The direction through the wall, by default 2.
     parameters : mapping, optional
         Values for the parameters of the model, by name or by symbol. Those
-        not given take the defaults of the model's parts.
+        not given take the defaults of the model's parts. A name that is not
+        a parameter of the model raises a ``KeyError``.
 
     Notes
     -----
+    The active tension of each wall is the argument ``Ta`` of :meth:`solve`
+    (symbols ``T_a_LW``, ``T_a_SW``, ``T_a_RW``), a Cauchy stress along the
+    fibres. It is not the parameter ``Ta`` of
+    :class:`zero_mech.active.ActiveStress`, which would be one value shared by
+    the three walls; see the note in the module documentation. The model should
+    have no active part.
+
     Lengths, areas and volumes must share a unit of length (e.g. cm, cm² and mL).
     Pressures come out in the unit of the material parameters and of the active
     tension.
@@ -407,7 +449,7 @@ class TriSeg(Atom):
         if not all(v > 0 for v in Vw) or not all(a > 0 for a in Am_ref):
             raise ValueError("Wall volumes and reference areas must be positive")
 
-        self.model = model if model is not None else Model()
+        self._set_model(model)
         self.Vw = tuple(float(v) for v in Vw)
         self.Am_ref = tuple(float(a) for a in Am_ref)
         self.radial_axis = radial_axis
@@ -461,20 +503,13 @@ class TriSeg(Atom):
         self.p_LV_expr = -2 * Tx[0] / self.ym
         self.p_RV_expr = 2 * Tx[2] / self.ym
 
-        self._defaults = _default_parameters(self.model)
-        if parameters is not None:
-            self._defaults.update(_by_name(parameters))
-        own = {self.V_LV, self.V_RV, self.xm_SW, self.ym, *self.Ta, *self.Ka, *self.stretch_ref}
-        self._parameter_symbols = sorted(
-            self.residual_expr.free_symbols - own, key=lambda s: s.name
-        )
-        missing = [s.name for s in self._parameter_symbols if s.name not in self._defaults]
-        if missing:
-            raise ValueError(f"No value for the model parameters {missing}")
+        own = (self.V_LV, self.V_RV, self.xm_SW, self.ym, *self.Ta, *self.Ka, *self.stretch_ref)
+        self._set_parameters(parameters, (self.residual_expr,), own)
 
         args = (self.xm_SW, self.ym, self.V_LV, self.V_RV, *self.Ta, *self.Ka, *self.stretch_ref)
         args += tuple(self._parameter_symbols)
-        newton = [*self.residual_expr, *jacobian]
+        # The midwall tensions come with the residual: they are its scale in the iteration
+        newton = [*self.residual_expr, *jacobian, *Tm_all]
         outputs = [self.p_LV_expr, self.p_RV_expr, xm[0], xm[2]]
         outputs += [*stretch, *Am_all, *Cm_all, *Tm_all]
         self._newton: Callable[..., Any] = sp.lambdify(args, newton, _MODULES, cse=True)
@@ -491,23 +526,6 @@ class TriSeg(Atom):
         """The symbols of the ventricles and of their model, by name."""
         own = (self.V_LV, self.V_RV, self.xm_SW, self.ym, *self.Ta, *self.Ka, *self.stretch_ref)
         return {**{s.name: s for s in own}, **self.model.variables()}
-
-    @property
-    def parameters(self) -> dict[str, float]:
-        """The parameters of the model that the pressures depend on, with their values."""
-        return {s.name: self._defaults[s.name] for s in self._parameter_symbols}
-
-    def _values(self, parameters: Mapping[Any, float] | None) -> list[float]:
-        values = self._defaults
-        if parameters:
-            given = _by_name(parameters)
-            unknown = set(given) - {s.name for s in self._parameter_symbols}
-            if unknown:
-                raise KeyError(
-                    f"Unknown parameters {sorted(unknown)}; known: {sorted(self.parameters)}"
-                )
-            values = {**values, **given}
-        return [values[s.name] for s in self._parameter_symbols]
 
     def initial_guess(self, V_LV: float, V_RV: float) -> tuple[float, float]:
         """A starting point ``(xm_SW, ym)`` for :meth:`solve`: the junction of a left
@@ -552,9 +570,10 @@ class TriSeg(Atom):
             nearby volumes. By default :meth:`initial_guess`.
         parameters : mapping, optional
             Model parameters to override for this call, by name or by symbol.
+            A parameter that the pressures do not depend on has no effect.
         tol : float, optional
-            The residual tensions are brought below ``tol`` times the largest
-            midwall tension (plus a small absolute floor).
+            Relative tolerance: the net tension in the junction is brought below
+            ``tol`` times the largest midwall tension.
         max_iterations : int, optional
             Newton iterations allowed from each starting point.
 
@@ -621,10 +640,12 @@ class TriSeg(Atom):
         )
 
     @staticmethod
-    def _per_wall(value: float | Sequence[float], name: str) -> list[float]:
-        values = (
-            [float(value)] * 3 if isinstance(value, (int, float)) else [float(v) for v in value]
-        )
+    def _per_wall(value: Any, name: str) -> list[float]:
+        """Three floats from one value (numpy scalars and 0-d arrays included) or one per wall."""
+        if isinstance(value, numbers.Real) or getattr(value, "ndim", None) == 0:
+            values = [float(value)] * 3
+        else:
+            values = [float(v) for v in value]
         if len(values) != 3:
             raise ValueError(f"{name} must be one value or three: LW, SW, RW")
         return values
@@ -639,13 +660,13 @@ class TriSeg(Atom):
             try:
                 with _quiet():
                     vals = [float(v) for v in self._newton(x, y, *tail)]
-                    scale = max(abs(float(t)) for t in self._outputs(x, y, *tail)[-3:])
             except (OverflowError, ValueError, ZeroDivisionError):
                 return None
             norm = math.hypot(vals[0], vals[1])
+            scale = max(abs(t) for t in vals[6:9])
             if not (math.isfinite(norm) and math.isfinite(scale)):
                 return None
-            return (vals[0], vals[1]), vals[2:], norm, scale
+            return (vals[0], vals[1]), vals[2:6], norm, scale
 
         x, y = start
         if not y > 0:
@@ -655,7 +676,7 @@ class TriSeg(Atom):
             return None
         f, J, norm, scale = current
         for iteration in range(max_iterations + 1):
-            if norm <= tol * (scale + 1e-12):
+            if norm <= tol * scale:
                 return x, y, f, iteration
             det = J[0] * J[3] - J[1] * J[2]
             if det == 0 or not math.isfinite(det):

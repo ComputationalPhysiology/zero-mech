@@ -1,4 +1,5 @@
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -6,6 +7,9 @@ import sympy as sp
 
 import zero_mech
 from zero_mech import SphericalVentricle
+
+
+SOFT = {"a": 0.3, "b": 5.0, "a_f": 1.0, "b_f": 4.0, "a_s": 0.0, "a_fs": 0.0}
 
 
 def neo_hookean():
@@ -129,16 +133,56 @@ def test_parameters_can_be_set_and_overridden():
 
 
 def test_a_model_with_its_own_active_energy_contributes_through_it():
+    # The model's Ta is not the active tension of the ventricle: it enters through the
+    # strain energy, psi_active = Ta / 2 (lmbda^2 - 1), and the class warns about it
     model = zero_mech.Model(
         material=zero_mech.material.NeoHookean(), active=zero_mech.active.ActiveStress()
     )
-    ventricle = SphericalVentricle(model, V0=50.0, Vw=150.0)
+    with pytest.warns(UserWarning, match="active part"):
+        ventricle = SphericalVentricle(model, V0=50.0, Vw=150.0)
     assert set(ventricle.parameters) == {"Ta", "mu"}
     V = 90.0
     lmbda = ventricle.stretch(V)
-    # psi_active = Ta / 2 (lmbda^2 - 1)
-    extra = ventricle.pressure(V, parameters={"Ta": 10.0}) - ventricle.pressure(V)
-    assert extra == pytest.approx(150.0 * 10.0 * lmbda * ventricle.dstretch_dV(V))
+    through_the_model = ventricle.pressure(V, parameters={"Ta": 10.0}) - ventricle.pressure(V)
+    assert through_the_model == pytest.approx(150.0 * 10.0 * lmbda * ventricle.dstretch_dV(V))
+    as_fibre_tension = ventricle.pressure(V, Ta=10.0) - ventricle.pressure(V)
+    assert through_the_model == pytest.approx(lmbda**2 * as_fibre_tension)
+
+    with pytest.warns(UserWarning, match="active part"):
+        zero_mech.TriSeg(model)
+
+
+def test_a_passive_model_does_not_warn():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        SphericalVentricle(neo_hookean(), V0=50.0, Vw=150.0)
+        zero_mech.TriSeg(neo_hookean())
+
+
+def test_unknown_parameter_names_are_rejected_everywhere():
+    with pytest.raises(KeyError, match="typo_mu"):
+        SphericalVentricle(neo_hookean(), V0=50.0, Vw=150.0, parameters={"typo_mu": 3.0})
+    with pytest.raises(KeyError, match="typo_mu"):
+        zero_mech.TriSeg(neo_hookean(), parameters={"typo_mu": 3.0})
+    ventricle = SphericalVentricle(neo_hookean(), V0=50.0, Vw=150.0)
+    with pytest.raises(KeyError, match="typo_mu"):
+        ventricle.pressure(80.0, parameters={"typo_mu": 3.0})
+    with pytest.raises(KeyError, match="typo_mu"):
+        ventricle.stiffness(80.0, parameters={"typo_mu": 3.0})
+
+
+def test_a_parameter_the_pressure_does_not_depend_on_is_accepted():
+    # The fibre-sheet shear term of Holzapfel-Ogden vanishes in an equibiaxial deformation,
+    # so a_fs is a parameter of the model that the pressure does not depend on
+    model = zero_mech.Model(material=zero_mech.material.HolzapfelOgden())
+    ventricle = SphericalVentricle(model, V0=50.0, Vw=150.0, parameters={"a_fs": 0.0})
+    assert "a_fs" not in ventricle.parameters
+    assert ventricle.pressure(80.0, parameters={"a_fs": 5.0}) == ventricle.pressure(80.0)
+    triseg = zero_mech.TriSeg(model, parameters={**SOFT, "b_fs": 1.0})
+    assert "b_fs" not in triseg.parameters
+    assert triseg.pressures(110.0, 120.0, parameters={"a_fs": 5.0}) == triseg.pressures(
+        110.0, 120.0
+    )
 
 
 @pytest.mark.parametrize("kwargs", [dict(V0=0.0, Vw=1.0), dict(V0=1.0, Vw=0.0)])
@@ -157,8 +201,6 @@ def test_symbols_are_reachable_by_name():
 # ----------------------------------------------------------------------
 # TriSeg
 # ----------------------------------------------------------------------
-
-SOFT = {"a": 0.3, "b": 5.0, "a_f": 1.0, "b_f": 4.0, "a_s": 0.0, "a_fs": 0.0}
 
 
 @pytest.fixture(scope="module")
@@ -292,6 +334,28 @@ def test_triseg_active_stiffness(triseg):
     assert explicit.p_RV == pytest.approx(spring.p_RV)
     with pytest.raises(ValueError):
         triseg.solve(110.0, 120.0, Ka=(1.0, 2.0))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [30, 30.0, np.int64(30), np.float32(30.0), np.float64(30.0), np.array(30.0), np.full(3, 30.0)],
+    ids=lambda v: f"{type(v).__name__}{getattr(v, 'shape', '')}",
+)
+def test_triseg_accepts_any_scalar_or_three_values(triseg, value):
+    reference = triseg.solve(110.0, 120.0, Ta=(30.0, 30.0, 30.0))
+    state = triseg.solve(110.0, 120.0, Ta=value)
+    assert state.p_LV == pytest.approx(reference.p_LV)
+    assert state.p_RV == pytest.approx(reference.p_RV)
+
+
+def test_triseg_converges_to_the_relative_tolerance(triseg):
+    for tol in (1e-6, 1e-12):
+        state = triseg.solve(110.0, 120.0, Ta=30.0, tol=tol)
+        assert math.hypot(*state.residual) <= tol * max(abs(t) for t in state.Tm)
+    # The unloaded heart: no tension anywhere, which the relative test must accept
+    model = zero_mech.Model(material=zero_mech.material.NeoHookean())
+    unloaded = zero_mech.TriSeg(model, Vw=(1e-9, 1e-9, 1e-9), Am_ref=(70.0, 40.0, 70.0))
+    assert math.isfinite(unloaded.solve(100.0, 100.0).p_LV)
 
 
 def test_triseg_solution_does_not_depend_on_the_guess(triseg):
