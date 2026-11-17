@@ -8,6 +8,11 @@ parts:
     chapters:
     - file: "examples/uniaxial_tension.py"
     - file: "examples/shear.py"
+  - caption: Ventricle
+    chapters:
+    - file: "examples/ventricle/spherical_ventricle.py"
+    - file: "examples/ventricle/frank_starling.py"
+    - file: "examples/ventricle/triseg.py"
   - caption: Electro-mechanics
     chapters:
     - file: "examples/electro-mechanics/electro_mechanics.py"

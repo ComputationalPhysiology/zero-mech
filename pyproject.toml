@@ -49,6 +49,7 @@ docs = [
 test = [
     "pytest",
     "pytest-cov",
+    "numpy",
 
 ]
 lite = [

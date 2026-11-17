@@ -5,6 +5,19 @@ from . import model
 from .model import Model
 from . import active
 from .active import ActiveStress
+from . import ventricle
+from .ventricle import SphericalVentricle, TriSeg
 
 
-__all__ = ["experiments", "material", "compressibility", "model", "Model", "active", "ActiveStress"]
+__all__ = [
+    "experiments",
+    "material",
+    "compressibility",
+    "model",
+    "Model",
+    "active",
+    "ActiveStress",
+    "ventricle",
+    "SphericalVentricle",
+    "TriSeg",
+]

@@ -123,6 +123,41 @@ def uniaxial_tension(
     return MechanicalExperiment(F11=F11, F22=F22, F33=F33)
 
 
+def equibiaxial(
+    axis: int = 2, lmbda=sp.Symbol("λ", real=True, positive=True)
+) -> MechanicalExperiment:
+    """Equal stretch in two directions with the third one thinning.
+
+    The deformation of an incompressible sheet, or of the wall of a
+    sphere that is inflated: the two in-plane directions are stretched
+    by λ and the direction given by ``axis`` (the wall thickness) by
+    λ⁻², so that the deformation is volume preserving.
+
+    Parameters
+    ----------
+    axis : int, optional
+        The thinning direction, by default 2
+    lmbda : sp.Symbol, optional
+        The in-plane stretch
+    """
+    F_plane = lmbda
+    F_thin = 1 / lmbda**2
+
+    if axis == 0:
+        F11 = F_thin
+        F22 = F33 = F_plane
+    elif axis == 1:
+        F22 = F_thin
+        F11 = F33 = F_plane
+    elif axis == 2:
+        F33 = F_thin
+        F11 = F22 = F_plane
+    else:
+        raise ValueError("axis must be 0, 1, or 2")
+
+    return MechanicalExperiment(F11=F11, F22=F22, F33=F33)
+
+
 def full_matrix() -> MechanicalExperiment:
     """Return a MechanicalExperiment with all components
     initialized as symbols.

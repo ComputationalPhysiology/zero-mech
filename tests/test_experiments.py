@@ -83,7 +83,7 @@ def test_active_uniaxial_tension(axis):
     p = model["p"]
 
     P = model.first_piola_kirchhoff(experiment.F)
-    assert equal(P[xx, xx], 2 * Ta * lmbda + lmbda * mu + p / lmbda)
+    assert equal(P[xx, xx], Ta * lmbda + lmbda * mu + p / lmbda)
     assert equal(P[yy, yy], sp.sqrt(lmbda) * p + mu / sp.sqrt(lmbda))
     assert equal(P[zz, zz], sp.sqrt(lmbda) * p + mu / sp.sqrt(lmbda))
     for i, j in ((x, y) for (x, y) in it.product(range(3), repeat=2) if x != y):
@@ -102,3 +102,13 @@ def test_active_uniaxial_tension(axis):
     assert equal(S[zz, zz], P[zz, zz] * sp.sqrt(lmbda))
     for i, j in ((x, y) for (x, y) in it.product(range(3), repeat=2) if x != y):
         assert sp.Eq(S[i, j], 0)
+
+
+def test_active_stress_is_the_second_piola_kirchhoff_stress_along_the_fibre():
+    F = zero_mech.experiments.full_matrix().F
+    f0 = sp.Matrix([1, 0, 0])
+    act = zero_mech.active.ActiveStress(f0=f0)
+    P = sp.Matrix(3, 3, lambda i, j: sp.diff(act.strain_energy(F), F[i, j]))
+    S = sp.simplify(F.inv() @ P)
+    assert sp.simplify(S - act.Ta * f0 @ f0.T) == sp.zeros(3, 3)
+    assert act.str() == "Ta / 2 * (I4f - 1)"
