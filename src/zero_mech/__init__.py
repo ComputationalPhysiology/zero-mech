@@ -7,6 +7,8 @@ from . import active
 from .active import ActiveStress, StretchActiveStress
 from . import ventricle
 from .ventricle import SphericalVentricle, TriSeg
+from . import thick_wall
+from .thick_wall import ThickCylinder, ThickSphere
 
 
 __all__ = [
@@ -21,4 +23,7 @@ __all__ = [
     "ventricle",
     "SphericalVentricle",
     "TriSeg",
+    "thick_wall",
+    "ThickCylinder",
+    "ThickSphere",
 ]

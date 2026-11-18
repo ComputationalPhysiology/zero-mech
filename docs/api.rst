@@ -53,6 +53,12 @@ ventricle
 .. automodule:: zero_mech.ventricle
     :members:
 
+thick_wall
+----------
+
+.. automodule:: zero_mech.thick_wall
+    :members:
+
 viscosity
 ----------
 
