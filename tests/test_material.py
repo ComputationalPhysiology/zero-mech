@@ -3,6 +3,7 @@ import pytest
 import sympy as sp
 
 import zero_mech
+from zero_mech.material import expm1_div
 
 #: A deformation with every invariant of Holzapfel-Ogden away from its rest value
 F_VALUES = sp.Matrix([[1.15, 0.1, 0.05], [0.08, 0.95, 0.02], [0.03, 0.06, 0.93]])
@@ -79,7 +80,7 @@ def test_holzapfel_ogden_lambdifies_with_zero_exponents():
         "numpy",
     )
     I1, I4f, *_ = invariants()
-    with np.errstate(divide="ignore", invalid="ignore"):  # numpy evaluates the unused branch
+    with np.errstate(all="raise"):
         value = f(2.0, 0.0, 3.0, 0.0)
     assert value == pytest.approx(1.0 * (I1 - 3) + 1.5 * (I4f - 1) ** 2)
 
@@ -97,3 +98,43 @@ def test_holzapfel_ogden_stress_lambdifies_cleanly_with_zero_exponents():
 
 def test_holzapfel_ogden_str_names_the_sheet_invariant():
     assert "exp(b_s * H(I4s - 1)**2)" in zero_mech.material.HolzapfelOgden.str()
+
+
+def test_holzapfel_ogden_lambdifies_with_math_and_zero_exponents():
+    material = zero_mech.material.HolzapfelOgden()
+    symbols = [material.a, material.b, material.a_f, material.b_f]
+    f = sp.lambdify(
+        symbols,
+        material.strain_energy(F_VALUES).xreplace(
+            {material.a_s: 0.0, material.b_s: 0.0, material.a_fs: 0.0, material.b_fs: 0.0}
+        ),
+        "math",
+    )
+    I1, I4f, *_ = invariants()
+    assert f(2.0, 0.0, 3.0, 0.0) == pytest.approx(1.0 * (I1 - 3) + 1.5 * (I4f - 1) ** 2)
+    assert f(2.0, 1.0, 3.0, 2.0) == pytest.approx(
+        energy(
+            {**A, "b": 1.0, "b_f": 2.0, "a_s": 0.0, "a_fs": 0.0, "b_s": 1.0, "b_fs": 1.0},
+            use_heaviside=False,
+        )
+    )
+
+
+def test_holzapfel_ogden_with_a_number_for_b_is_the_plain_exponential():
+    material = zero_mech.material.HolzapfelOgden()
+    x = sp.Symbol("x")
+    term = expm1_div(material.b, x)
+    assert term.subs(material.b, 2) == (sp.exp(2 * x) - 1) / 2
+    assert term.subs(material.b, 0) == x
+    # A negative exponent keeps the exponential, which is exact there too
+    assert term.subs(material.b, -1) == 1 - sp.exp(-x)
+    assert sp.diff(term, x) == sp.exp(material.b * x)
+
+
+def test_solve_for_the_pressure_in_simple_shear():
+    # A Piecewise in b made sympy.solve fail to convert its solution to floats
+    model = zero_mech.Model(material=zero_mech.material.HolzapfelOgden())
+    experiment = zero_mech.experiments.simple_shear(plane="fs")
+    P = model.first_piola_kirchhoff(experiment.F)
+    (p,) = sp.solve(P[0, 0], model["p"])
+    assert not p.has(sp.Piecewise)
