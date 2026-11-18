@@ -33,6 +33,10 @@ with :math:`T_a` an active tension along the fibres (a Cauchy stress).
     an active part, and pass the active tension to the methods; the classes
     warn otherwise.
 
+The one-fibre model is an approximation whose error grows with the thickness of
+the wall. For the exact solution of a thick-walled sphere or tube, to compare with
+or to verify a finite element solver against, see :mod:`zero_mech.thick_wall`.
+
 Spherical ventricle
 -------------------
 
@@ -141,10 +145,8 @@ except ImportError:  # pragma: no cover
     _quiet = contextlib.nullcontext
 
 
-def _by_name(parameters: Mapping[Any, float]) -> dict[str, float]:
-    return {
-        (k.name if isinstance(k, sp.Symbol) else str(k)): float(v) for k, v in parameters.items()
-    }
+def _by_name(parameters: Mapping[Any, Any]) -> dict[str, Any]:
+    return {(k.name if isinstance(k, sp.Symbol) else str(k)): v for k, v in parameters.items()}
 
 
 def _default_parameters(model: Model) -> dict[str, float]:
@@ -152,7 +154,7 @@ def _default_parameters(model: Model) -> dict[str, float]:
     for part in (model.material, model.compressibility, model.active):
         get = getattr(part, "default_parameters", None)
         if get is not None:
-            defaults.update(_by_name(get()))
+            defaults.update({k: float(v) for k, v in _by_name(get()).items()})
     return defaults
 
 
@@ -208,9 +210,13 @@ class _Ventricle(Atom):
         if missing:
             raise ValueError(f"No value for the model parameters {missing}")
 
+    def _value(self, name: str, value: Any) -> Any:
+        """The value of a parameter as the ventricle takes it: a float."""
+        return float(value)
+
     def _checked(self, parameters: Mapping[Any, float]) -> dict[str, float]:
         """``parameters`` by name, after checking that each is a parameter of the model."""
-        given = _by_name(parameters)
+        given = {name: self._value(name, v) for name, v in _by_name(parameters).items()}
         unknown = set(given) - self._known
         if unknown:
             raise KeyError(f"Unknown parameters {sorted(unknown)}; known: {sorted(self._known)}")

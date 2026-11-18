@@ -112,3 +112,34 @@ def test_active_stress_is_the_second_piola_kirchhoff_stress_along_the_fibre():
     S = sp.simplify(F.inv() @ P)
     assert sp.simplify(S - act.Ta * f0 @ f0.T) == sp.zeros(3, 3)
     assert act.str() == "Ta / 2 * (I4f - 1)"
+
+
+def test_stretch_active_stress_is_a_nominal_stress_along_the_fibre():
+    F = zero_mech.experiments.full_matrix().F
+    f0 = sp.Matrix([1, 0, 0])
+    act = zero_mech.StretchActiveStress(f0=f0)
+    P = sp.Matrix(3, 3, lambda i, j: sp.diff(act.strain_energy(F), F[i, j]))
+    S = sp.simplify(F.inv() @ P)
+    I4f = (F @ f0).dot(F @ f0)
+    assert sp.simplify(S - act.Ta / sp.sqrt(I4f) * f0 @ f0.T) == sp.zeros(3, 3)
+    assert act.str() == "Ta * (sqrt(I4f) - 1)"
+
+
+@pytest.mark.parametrize("axis", range(3))
+def test_stretch_active_stress_in_uniaxial_tension(axis):
+    # The force per reference area along the fibre is Ta at any stretch, smaller than that of
+    # ActiveStress by a factor of the stretch
+    f0 = sp.Matrix([0, 0, 0])
+    f0[axis] = 1
+    experiment = zero_mech.experiments.uniaxial_tension(axis=axis)
+    lmbda = experiment["λ"]
+    stretch = zero_mech.Model(active=zero_mech.StretchActiveStress(f0=f0))
+    invariant = zero_mech.Model(active=zero_mech.ActiveStress(f0=f0))
+    P_stretch = stretch.first_piola_kirchhoff(experiment.F)
+    P_invariant = invariant.first_piola_kirchhoff(experiment.F)
+    passive = zero_mech.Model().first_piola_kirchhoff(experiment.F)
+    Ta = stretch["Ta"]
+    assert equal(P_stretch[axis, axis] - passive[axis, axis], Ta)
+    assert equal(P_invariant[axis, axis] - passive[axis, axis], Ta * lmbda)
+    for i in set(range(3)) - {axis}:
+        assert equal(P_stretch[i, i], passive[i, i])
