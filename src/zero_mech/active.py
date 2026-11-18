@@ -12,6 +12,10 @@ class ActiveStress(AbstractStrainEnergy):
     Piola-Kirchhoff stress it adds is :math:`T_a \\, f_0 \\otimes f_0`. For a
     fibre stretch :math:`\\lambda` the first Piola-Kirchhoff stress along the
     fibre is :math:`T_a \\lambda` and the Cauchy stress :math:`T_a \\lambda^2 / J`.
+
+    This is the ``invariant`` formulation of ``pulse.ActiveStress``. See
+    :class:`StretchActiveStress` for the ``stretch`` formulation, whose stress
+    is smaller by a factor of :math:`\\lambda`.
     """
 
     Ta: sp.Symbol = sp.Symbol("Ta")
@@ -28,6 +32,40 @@ class ActiveStress(AbstractStrainEnergy):
     @staticmethod
     def str() -> str:
         return "Ta / 2 * (I4f - 1)"
+
+
+@dataclass(slots=True, frozen=True)
+class StretchActiveStress(AbstractStrainEnergy):
+    """An active tension along the fibres that is a nominal stress, as a strain energy.
+
+    The energy is :math:`T_a (\\lambda - 1)`, with :math:`\\lambda = \\sqrt{I_{4f}}`
+    the fibre stretch, so that the second Piola-Kirchhoff stress it adds is
+    :math:`\\frac{T_a}{\\lambda} f_0 \\otimes f_0` and the first Piola-Kirchhoff
+    stress is :math:`T_a \\, F f_0 \\otimes f_0 / |F f_0|`. The force per unit
+    reference area along the fibre is therefore :math:`T_a` at any stretch, and the
+    Cauchy stress along the fibre is :math:`T_a \\lambda / J`.
+
+    This is the ``stretch`` formulation of ``pulse.ActiveStress``, the normalisation
+    of Regazzoni and Quarteroni (2021), under which the active stiffness of a
+    force-generation model and its tension refer to the same stretch.
+    :class:`ActiveStress` is the ``invariant`` formulation, whose stress is larger
+    by a factor of :math:`\\lambda`.
+    """
+
+    Ta: sp.Symbol = sp.Symbol("Ta")
+    f0: sp.Matrix = field(default_factory=lambda: sp.Matrix([1, 0, 0]))
+
+    def strain_energy(self, F: sp.Matrix) -> sp.Expr:
+        f = F @ self.f0
+        I4f = f.T.dot(f)
+        return self.Ta * (sp.sqrt(I4f) - 1)
+
+    def default_parameters(self):
+        return {self.Ta: 0.0}
+
+    @staticmethod
+    def str() -> str:
+        return "Ta * (sqrt(I4f) - 1)"
 
 
 @dataclass(slots=True, frozen=True)

@@ -4,7 +4,7 @@ from . import compressibility
 from . import model
 from .model import Model
 from . import active
-from .active import ActiveStress
+from .active import ActiveStress, StretchActiveStress
 from . import ventricle
 from .ventricle import SphericalVentricle, TriSeg
 
@@ -17,6 +17,7 @@ __all__ = [
     "Model",
     "active",
     "ActiveStress",
+    "StretchActiveStress",
     "ventricle",
     "SphericalVentricle",
     "TriSeg",
