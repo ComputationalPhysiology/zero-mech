@@ -33,8 +33,34 @@ class NeoHookean(AbstractStrainEnergy):
 #         I1 = sp.trace(C)
 
 
+#: Below this value an exponent ``b`` of :class:`HolzapfelOgden` is taken as zero, as in pulse
+B_ZERO = 1e-10
+
+
+def _exponential(a: sp.Expr, b: sp.Expr, x: sp.Expr) -> sp.Expr:
+    """``a / (2 b) (exp(b x) - 1)``, or its limit ``a / 2 x`` when ``b`` is (close to) zero."""
+    return sp.Piecewise(
+        ((a / (2 * b)) * (sp.exp(b * x) - 1), b > B_ZERO),
+        (a / 2 * x, True),
+    )
+
+
 @dataclass(slots=True, frozen=True)
 class HolzapfelOgden(AbstractStrainEnergy):
+    """The Holzapfel-Ogden model.
+
+    Each term is :math:`\\frac{a}{2 b} (e^{b x} - 1)`. Where an exponent :math:`b`
+    is zero (at most :data:`B_ZERO`) the term is its limit :math:`\\frac{a}{2} x`,
+    as in pulse, so that a parameter set with ``b_s = 0`` and ``a_s = 0``, such as
+    pulse's ``transversely_isotropic_parameters()``, can be used as it is. A term
+    whose :math:`a` is zero vanishes either way.
+
+    ``sympy.lambdify`` with numpy evaluates both branches of the switch, so the
+    energy itself, evaluated that way at :math:`b = 0`, warns about a division by
+    zero in the branch it does not use. The stresses do not, since :math:`b`
+    cancels in their exponential branch.
+    """
+
     a: sp.Symbol = sp.Symbol("a")
     b: sp.Symbol = sp.Symbol("b")
     a_f: sp.Symbol = sp.Symbol("a_f")
@@ -63,10 +89,10 @@ class HolzapfelOgden(AbstractStrainEnergy):
         I4sm1 = I4s - 1 if not self.use_heaviside else sp.Piecewise((0.0, I4s < 1), (I4s - 1, True))
 
         return (
-            (self.a / (2 * self.b)) * (sp.exp(self.b * (I1 - 3)) - 1)
-            + (self.a_f / (2 * self.b_f)) * (sp.exp(self.b_f * I4fm1**2) - 1)
-            + (self.a_s / (2 * self.b_s)) * (sp.exp(self.b_s * I4sm1**2) - 1)
-            + (self.a_fs / (2 * self.b_fs)) * (sp.exp(self.b_fs * I8fs**2) - 1)
+            _exponential(self.a, self.b, I1 - 3)
+            + _exponential(self.a_f, self.b_f, I4fm1**2)
+            + _exponential(self.a_s, self.b_s, I4sm1**2)
+            + _exponential(self.a_fs, self.b_fs, I8fs**2)
         )
 
     def default_parameters(self):
@@ -86,6 +112,6 @@ class HolzapfelOgden(AbstractStrainEnergy):
         return (
             "(a / (2 * b)) * (exp(b * (I1 - 3)) - 1) + "
             "(a_f / (2 * b_f)) * (exp(b_f * H(I4f - 1)**2) - 1) + "
-            "(a_s / (2 * b_s)) * (exp(b_s * H(I4f - 1)**2) - 1) + "
+            "(a_s / (2 * b_s)) * (exp(b_s * H(I4s - 1)**2) - 1) + "
             "(a_fs / (2 * b_fs)) * (exp(b_fs * I8fs**2) - 1)"
         )
